@@ -1,0 +1,164 @@
+<<<<<<< .mine
+<?php
+class list_action{
+    function ProcessListAction1($istanza) {
+        global $Language, $Security;
+        $userlist = "";
+        $user = "";
+        $sFilter = $istanza->GetKeyFilter();
+        $UserAction = @$_POST["useraction"];
+        if ($sFilter <> "" && $UserAction <> "") {
+
+            // Check permission first
+            $ActionCaption = $UserAction;
+            if (array_key_exists($UserAction, $istanza->ListActions->Items)) {
+                $ActionCaption = $istanza->ListActions->Items[$UserAction]->Caption;
+                if (!$istanza->ListActions->Items[$UserAction]->Allow) {
+                    $errmsg = str_replace('%s', $ActionCaption, $Language->Phrase("CustomActionNotAllowed"));
+                    if (@$_POST["ajax"] == $UserAction) // Ajax
+                        echo "<p class=\"text-danger\">" . $errmsg . "</p>";
+                    else
+                        $istanza->setFailureMessage($errmsg);
+                    return FALSE;
+                }
+            }
+            $istanza->CurrentFilter = $sFilter;
+            $sSql = $istanza->SQL();
+            $conn = &$istanza->Connection();
+            $conn->raiseErrorFn = $GLOBALS["EW_ERROR_FN"];
+            $rs = $conn->Execute($sSql);
+            $conn->raiseErrorFn = '';
+            $istanza->CurrentAction = $UserAction;
+
+            // Call row action event
+            if ($rs && !$rs->EOF) {
+                $conn->BeginTrans();
+                $istanza->SelectedCount = $rs->RecordCount();
+                $istanza->SelectedIndex = 0;
+                while (!$rs->EOF) {
+                    $istanza->SelectedIndex++;
+                    $row = $rs->fields;
+                    $Processed = $istanza->Row_CustomAction($UserAction, $row);
+                    if (!$Processed) break;
+                    $rs->MoveNext();
+                }
+                if ($Processed) {
+                    $conn->CommitTrans(); // Commit the changes
+                    if ($istanza->getSuccessMessage() == "")
+                        $istanza->setSuccessMessage(str_replace('%s', $ActionCaption, $Language->Phrase("CustomActionCompleted"))); // Set up success message
+                } else {
+                    $conn->RollbackTrans(); // Rollback changes
+
+                    // Set up error message
+                    if ($istanza->getSuccessMessage() <> "" || $istanza->getFailureMessage() <> "") {
+
+                        // Use the message, do nothing
+                    } elseif ($istanza->CancelMessage <> "") {
+                        $istanza->setFailureMessage($istanza->CancelMessage);
+                        $istanza->CancelMessage = "";
+                    } else {
+                        $istanza->setFailureMessage(str_replace('%s', $ActionCaption, $Language->Phrase("CustomActionFailed")));
+                    }
+                }
+            }
+            if ($rs)
+                $rs->Close();
+            $istanza->CurrentAction = ""; // Clear action
+            if (@$_POST["ajax"] == $UserAction) { // Ajax
+                if ($istanza->getSuccessMessage() <> "") {
+                    echo "<p class=\"text-success\">" . $istanza->getSuccessMessage() . "</p>";
+                    $istanza->ClearSuccessMessage(); // Clear message
+                }
+                if ($istanza->getFailureMessage() <> "") {
+                    echo "<p class=\"text-danger\">" . $istanza->getFailureMessage() . "</p>";
+                    $istanza->ClearFailureMessage(); // Clear message
+                }
+                return TRUE;
+            }
+        }
+        return FALSE; // Not ajax request
+    }
+}
+=======
+<?php
+class list_action{
+    function ProcessListAction1($istanza) {
+        global $Language, $Security;
+        $userlist = "";
+        $user = "";
+        $sFilter = $istanza->GetKeyFilter();
+        $UserAction = @$_POST["useraction"];
+        if ($sFilter <> "" && $UserAction <> "") {
+
+            // Check permission first
+            $ActionCaption = $UserAction;
+            if (array_key_exists($UserAction, $istanza->ListActions->Items)) {
+                $ActionCaption = $istanza->ListActions->Items[$UserAction]->Caption;
+                if (!$istanza->ListActions->Items[$UserAction]->Allow) {
+                    $errmsg = str_replace('%s', $ActionCaption, $Language->Phrase("CustomActionNotAllowed"));
+                    if (@$_POST["ajax"] == $UserAction) // Ajax
+                        echo "<p class=\"text-danger\">" . $errmsg . "</p>";
+                    else
+                        $istanza->setFailureMessage($errmsg);
+                    return FALSE;
+                }
+            }
+            $istanza->CurrentFilter = $sFilter;
+            $sSql = $istanza->SQL();
+            $conn = &$istanza->Connection();
+            $conn->raiseErrorFn = $GLOBALS["EW_ERROR_FN"];
+            $rs = $conn->Execute($sSql);
+            $conn->raiseErrorFn = '';
+            $istanza->CurrentAction = $UserAction;
+
+            // Call row action event
+            if ($rs && !$rs->EOF) {
+                $conn->BeginTrans();
+                $istanza->SelectedCount = $rs->RecordCount();
+                $istanza->SelectedIndex = 0;
+                while (!$rs->EOF) {
+                    $istanza->SelectedIndex++;
+                    $row = $rs->fields;
+                    $Processed = $istanza->Row_CustomAction($UserAction, $row);
+                    if (!$Processed) break;
+                    $rs->MoveNext();
+                }
+                if ($Processed) {
+                    $conn->CommitTrans(); // Commit the changes
+                    if ($istanza->getSuccessMessage() == "")
+                        $istanza->setSuccessMessage(str_replace('%s', $ActionCaption, $Language->Phrase("CustomActionCompleted"))); // Set up success message
+                } else {
+                    $conn->RollbackTrans(); // Rollback changes
+
+                    // Set up error message
+                    if ($istanza->getSuccessMessage() <> "" || $istanza->getFailureMessage() <> "") {
+
+                        // Use the message, do nothing
+                    } elseif ($istanza->CancelMessage <> "") {
+                        $istanza->setFailureMessage($this->CancelMessage);
+                        $istanza->CancelMessage = "";
+                    } else {
+                        $istanza->setFailureMessage(str_replace('%s', $ActionCaption, $Language->Phrase("CustomActionFailed")));
+                    }
+                }
+            }
+            if ($rs)
+                $rs->Close();
+            $istanza->CurrentAction = ""; // Clear action
+            if (@$_POST["ajax"] == $UserAction) { // Ajax
+                if ($istanza->getSuccessMessage() <> "") {
+                    echo "<p class=\"text-success\">" . $istanza->getSuccessMessage() . "</p>";
+                    $istanza->ClearSuccessMessage(); // Clear message
+                }
+                if ($istanza->getFailureMessage() <> "") {
+                    echo "<p class=\"text-danger\">" . $istanza->getFailureMessage() . "</p>";
+                    $istanza->ClearFailureMessage(); // Clear message
+                }
+                return TRUE;
+            }
+        }
+        return FALSE; // Not ajax request
+    }
+}
+>>>>>>> .r87
+?>

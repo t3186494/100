@@ -1,0 +1,139 @@
+<?php
+class render_list{
+    function RenderListOptions1($istanza) {
+        global $Security, $Language, $objForm;
+        $istanza->ListOptions->LoadDefault();
+
+        // "view"
+        $oListOpt = &$istanza->ListOptions->Items["view"];
+        if ($Security->CanView())
+            $oListOpt->Body = "<a class=\"ewRowLink ewView\" title=\"" . ew_HtmlTitle($Language->Phrase("ViewLink")) . "\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("ViewLink")) . "\" href=\"" . ew_HtmlEncode($istanza->ViewUrl) . "\">" . $Language->Phrase("ViewLink") . "</a>";
+        else
+            $oListOpt->Body = "";
+
+        // "edit"
+        $oListOpt = &$istanza->ListOptions->Items["edit"];
+        if ($Security->CanEdit()) {
+            $oListOpt->Body = "<a class=\"ewRowLink ewEdit\" title=\"" . ew_HtmlTitle($Language->Phrase("EditLink")) . "\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("EditLink")) . "\" href=\"" . ew_HtmlEncode($istanza->EditUrl) . "\">" . $Language->Phrase("EditLink") . "</a>";
+        } else {
+            $oListOpt->Body = "";
+        }
+
+        // "copy"
+        $oListOpt = &$istanza->ListOptions->Items["copy"];
+        if ($Security->CanAdd()) {
+            $oListOpt->Body = "<a class=\"ewRowLink ewCopy\" title=\"" . ew_HtmlTitle($Language->Phrase("CopyLink")) . "\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("CopyLink")) . "\" href=\"" . ew_HtmlEncode($istanza->CopyUrl) . "\">" . $Language->Phrase("CopyLink") . "</a>";
+        } else {
+            $oListOpt->Body = "";
+        }
+
+        // Set up list action buttons
+        $oListOpt = &$istanza->ListOptions->GetItem("listactions");
+        if ($oListOpt) {
+            $body = "";
+            $links = array();
+            foreach ($istanza->ListActions->Items as $listaction) {
+                if ($listaction->Select == EW_ACTION_SINGLE && $listaction->Allow) {
+                    $action = $listaction->Action;
+                    $caption = $listaction->Caption;
+                    $icon = ($listaction->Icon <> "") ? "<span class=\"" . ew_HtmlEncode(str_replace(" ewIcon", "", $listaction->Icon)) . "\" data-caption=\"" . ew_HtmlTitle($caption) . "\"></span> " : "";
+                    $links[] = "<li><a class=\"ewAction ewListAction\" data-action=\"" . ew_HtmlEncode($action) . "\" data-caption=\"" . ew_HtmlTitle($caption) . "\" href=\"\" onclick=\"ew_SubmitAction(event,jQuery.extend({key:" . $istanza->KeyToJson() . "}," . $listaction->ToJson(TRUE) . "));return false;\">" . $icon . $listaction->Caption . "</a></li>";
+                    if (count($links) == 1) // Single button
+                        $body = "<a class=\"ewAction ewListAction\" data-action=\"" . ew_HtmlEncode($action) . "\" title=\"" . ew_HtmlTitle($caption) . "\" data-caption=\"" . ew_HtmlTitle($caption) . "\" href=\"\" onclick=\"ew_SubmitAction(event,jQuery.extend({key:" . $istanza->KeyToJson() . "}," . $listaction->ToJson(TRUE) . "));return false;\">" . $Language->Phrase("ListActionButton") . "</a>";
+                }
+            }
+            if (count($links) > 1) { // More than one buttons, use dropdown
+                $body = "<button class=\"dropdown-toggle btn btn-default btn-sm ewActions\" title=\"" . ew_HtmlTitle($Language->Phrase("ListActionButton")) . "\" data-toggle=\"dropdown\">" . $Language->Phrase("ListActionButton") . "<b class=\"caret\"></b></button>";
+                $content = "";
+                foreach ($links as $link)
+                    $content .= "<li>" . $link . "</li>";
+                $body .= "<ul class=\"dropdown-menu" . ($oListOpt->OnLeft ? "" : " dropdown-menu-right") . "\">". $content . "</ul>";
+                $body = "<div class=\"btn-group\">" . $body . "</div>";
+            }
+            if (count($links) > 0) {
+                $oListOpt->Body = $body;
+                $oListOpt->Visible = TRUE;
+            }
+        }
+        $DetailViewTblVar = "";
+        $DetailCopyTblVar = "";
+        $DetailEditTblVar = "";
+
+        // "detail_a_sales"
+        $oListOpt = &$istanza->ListOptions->Items["detail_a_sales"];
+        if ($Security->AllowList(CurrentProjectID() . 'a_sales')) {
+            $body = $Language->Phrase("DetailLink") . $Language->TablePhrase("a_sales", "TblCaption");
+
+            // $body .= str_replace("%c", $istanza->a_sales_Count, $Language->Phrase("DetailCount"));
+            if ( $istanza->a_sales_Count > 0 && MS_SHOW_DETAILCOUNT_GREATER_THAN_ZERO_ONLY == TRUE ) {
+                if (MS_USE_BADGE_FOR_DETAILCOUNT) {
+                    $body .= "&nbsp;<i class='badge'>".$istanza->a_sales_Count."</i>"; // we cannot use <span class='badge'></span> here, not sure why? strange, huh?
+                } else {
+                    $body .= "&nbsp;" . str_replace("%c", $istanza->a_sales_Count, $Language->Phrase("DetailCount"));
+                }
+            } elseif ( $istanza->a_sales_Count >= 0 && MS_SHOW_DETAILCOUNT_GREATER_THAN_ZERO_ONLY == FALSE ) {
+                if (MS_USE_BADGE_FOR_DETAILCOUNT) {
+                    $body .= "&nbsp;<i class='badge'>".$istanza->a_sales_Count."</i>"; // we cannot use <span class='badge'></span> here, not sure why? strange, huh?
+                } else {
+                    $body .= "&nbsp;" . str_replace("%c", $istanza->a_sales_Count, $Language->Phrase("DetailCount"));
+                }
+            }
+            $body = "<a class=\"btn btn-default btn-sm ewRowLink ewDetail\" data-action=\"list\" href=\"" . ew_HtmlEncode("a_saleslist.php?" . EW_TABLE_SHOW_MASTER . "=a_customers&fk_Customer_Number=" . urlencode(strval($istanza->Customer_Number->CurrentValue)) . "") . "\">" . $body . "</a>";
+            $links = "";
+            if ($GLOBALS["a_sales_grid"]->DetailView && $Security->CanView() && $Security->AllowView(CurrentProjectID() . 'a_sales')) {
+                $links .= "<li><a class=\"ewRowLink ewDetailView\" data-action=\"view\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("MasterDetailViewLink")) . "\" href=\"" . ew_HtmlEncode($istanza->GetViewUrl(EW_TABLE_SHOW_DETAIL . "=a_sales")) . "\">" . ew_HtmlImageAndText($Language->Phrase("MasterDetailViewLink")) . "</a></li>";
+                if ($DetailViewTblVar <> "") $DetailViewTblVar .= ",";
+                $DetailViewTblVar .= "a_sales";
+            }
+            if ($GLOBALS["a_sales_grid"]->DetailEdit && $Security->CanEdit() && $Security->AllowEdit(CurrentProjectID() . 'a_sales')) {
+                $links .= "<li><a class=\"ewRowLink ewDetailEdit\" data-action=\"edit\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("MasterDetailEditLink")) . "\" href=\"" . ew_HtmlEncode($istanza->GetEditUrl(EW_TABLE_SHOW_DETAIL . "=a_sales")) . "\">" . ew_HtmlImageAndText($Language->Phrase("MasterDetailEditLink")) . "</a></li>";
+                if ($DetailEditTblVar <> "") $DetailEditTblVar .= ",";
+                $DetailEditTblVar .= "a_sales";
+            }
+            if ($GLOBALS["a_sales_grid"]->DetailAdd && $Security->CanAdd() && $Security->AllowAdd(CurrentProjectID() . 'a_sales')) {
+                $links .= "<li><a class=\"ewRowLink ewDetailCopy\" data-action=\"add\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("MasterDetailCopyLink")) . "\" href=\"" . ew_HtmlEncode($istanza->GetCopyUrl(EW_TABLE_SHOW_DETAIL . "=a_sales")) . "\">" . ew_HtmlImageAndText($Language->Phrase("MasterDetailCopyLink")) . "</a></li>";
+                if ($DetailCopyTblVar <> "") $DetailCopyTblVar .= ",";
+                $DetailCopyTblVar .= "a_sales";
+            }
+            if ($links <> "") {
+                $body .= "<button class=\"dropdown-toggle btn btn-default btn-sm ewDetail\" data-toggle=\"dropdown\"><b class=\"caret\"></b></button>";
+                $body .= "<ul class=\"dropdown-menu\">". $links . "</ul>";
+            }
+            $body = "<div class=\"btn-group\">" . $body . "</div>";
+            $oListOpt->Body = $body;
+            if ($istanza->ShowMultipleDetails) $oListOpt->Visible = FALSE;
+        }
+        if ($istanza->ShowMultipleDetails) {
+            $body = $Language->Phrase("MultipleMasterDetails");
+            $body = "<div class=\"btn-group\">";
+            $links = "";
+            if ($DetailViewTblVar <> "") {
+                $links .= "<li><a class=\"ewRowLink ewDetailView\" data-action=\"view\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("MasterDetailViewLink")) . "\" href=\"" . ew_HtmlEncode($istanza->GetViewUrl(EW_TABLE_SHOW_DETAIL . "=" . $DetailViewTblVar)) . "\">" . ew_HtmlImageAndText($Language->Phrase("MasterDetailViewLink")) . "</a></li>";
+            }
+            if ($DetailEditTblVar <> "") {
+                $links .= "<li><a class=\"ewRowLink ewDetailEdit\" data-action=\"edit\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("MasterDetailEditLink")) . "\" href=\"" . ew_HtmlEncode($istanza->GetEditUrl(EW_TABLE_SHOW_DETAIL . "=" . $DetailEditTblVar)) . "\">" . ew_HtmlImageAndText($Language->Phrase("MasterDetailEditLink")) . "</a></li>";
+            }
+            if ($DetailCopyTblVar <> "") {
+                $links .= "<li><a class=\"ewRowLink ewDetailCopy\" data-action=\"add\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("MasterDetailCopyLink")) . "\" href=\"" . ew_HtmlEncode($istanza->GetCopyUrl(EW_TABLE_SHOW_DETAIL . "=" . $DetailCopyTblVar)) . "\">" . ew_HtmlImageAndText($Language->Phrase("MasterDetailCopyLink")) . "</a></li>";
+            }
+            if ($links <> "") {
+                $body .= "<button class=\"dropdown-toggle btn btn-default btn-sm ewMasterDetail\" title=\"" . ew_HtmlTitle($Language->Phrase("MultipleMasterDetails")) . "\" data-toggle=\"dropdown\">" . $Language->Phrase("MultipleMasterDetails") . "<b class=\"caret\"></b></button>";
+                $body .= "<ul class=\"dropdown-menu ewMenu\">". $links . "</ul>";
+            }
+            $body .= "</div>";
+
+            // Multiple details
+            $oListOpt = &$istanza->ListOptions->Items["details"];
+            $oListOpt->Body = $body;
+        }
+
+        // "checkbox"
+        $oListOpt = &$istanza->ListOptions->Items["checkbox"];
+        $oListOpt->Body = "<input type=\"checkbox\" name=\"key_m[]\" value=\"" . ew_HtmlEncode($istanza->Customer_ID->CurrentValue) . "\" onclick='ew_ClickMultiCheckbox(event);'>";
+        $istanza->RenderListOptionsExt();
+
+        // Call ListOptions_Rendered event
+        $istanza->ListOptions_Rendered();
+    }
+}
+?>
